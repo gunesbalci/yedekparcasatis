@@ -6,13 +6,33 @@ using System.Text.RegularExpressions;
 
 namespace Proje
 {
+    public enum GirisYontemi{giris,kayıt}
     public class Araba
     {
-        string marka;
-        public string model;
-        public string[] donanim = new string[2];
-        public string[] yedekParca = new string[5];
-
+        internal string marka;
+        internal string model;
+        internal Donanim[] donanim;
+        internal Araba(string marka, string model, Donanim[] donanim)
+        {
+            this.marka = marka;
+            this.model  = model;
+            this.donanim = donanim;
+        }
+        internal void arabaEkle(string dosya)
+        {
+            File.AppendAllText(dosya, this.marka+ " ");
+            File.AppendAllText(dosya, this.model+ " ");
+            for(int i=0; i<2; i++)
+            {
+                File.AppendAllText(dosya, this.donanim[i].isim + " ");
+                for(int j=0; j<5; j++)
+                {
+                    File.AppendAllText(dosya, this.donanim[i].yedekParca[j].parca+ " ");
+                    File.AppendAllText(dosya, Convert.ToString(this.donanim[i].yedekParca[j].stok)+ " ");
+                }
+            }
+            File.AppendAllText(dosya, "\n");
+        }
         internal void arabaBilgi(string dosya)
         {
             if (File.Exists(dosya)) 
@@ -22,6 +42,27 @@ namespace Proje
                 model = arababilgi[1];
                 Console.WriteLine($"{marka},{model}"); 
             } 
+        }
+    }
+
+    public class YedekParca
+    {
+        internal string parca;
+        internal int stok;
+        internal YedekParca(string parca,int stok)
+        {
+            this.parca = parca;
+            this.stok = stok;
+        }
+    }
+    public class Donanim
+    {
+        internal string isim;
+        internal YedekParca[] yedekParca;
+        internal Donanim(string isim,YedekParca[] yedekParca)
+        {
+            this.isim = isim;
+            this.yedekParca = yedekParca;
         }
     }
     public class Kullanici
@@ -41,16 +82,7 @@ namespace Proje
             this.telefon = telefon;
             this.eposta = eposta;
         }
-    }
-
-    public class Yonetici : Kullanici
-    {
-        internal Yonetici(string kullaniciAdi,string sifre,string isim,string telefon,string eposta) 
-        : base(kullaniciAdi,sifre,isim,telefon,eposta)
-        {
-            this.statu = "yonetici";
-        }
-        internal void yoneticiEkle(string dosya)
+        internal void KullaniciEkle(string dosya)
         {
             File.AppendAllText(dosya, this.statu);
             File.AppendAllText(dosya, "\n"+this.kullaniciAdi);
@@ -58,6 +90,14 @@ namespace Proje
             File.AppendAllText(dosya, "\n"+this.isim);
             File.AppendAllText(dosya, "\n"+this.eposta);
             File.AppendAllText(dosya, "\n"+this.telefon);
+        }
+    }
+    public class Yonetici : Kullanici
+    {
+        internal Yonetici(string kullaniciAdi,string sifre,string isim,string telefon,string eposta) 
+        : base(kullaniciAdi,sifre,isim,telefon,eposta)
+        {
+            this.statu = "yonetici";
         }
         internal void yoneticiBilgi(string dosya)
         {
@@ -99,222 +139,38 @@ namespace Proje
         {
             this.statu = "satici";
         }
-        internal void saticiEkle(string dosya)
-        {
-            File.AppendAllText(dosya, "\n"+this.statu);
-            File.AppendAllText(dosya, "\n"+this.kullaniciAdi);
-            File.AppendAllText(dosya, "\n"+this.sifre);
-            File.AppendAllText(dosya, "\n"+this.isim);
-            File.AppendAllText(dosya, "\n"+this.eposta);
-            File.AppendAllText(dosya, "\n"+this.telefon);
-        }
     } 
 
     public class Program
     {
-        internal static string GirisEkrani()
+        internal static GirisYontemi GirisEkrani()
         {
             Console.Write("\n1 veya 2'yi tuslayiniz.\n");
             Console.Write("1- Hesabim var: Giris yap\n2- Hesabim yok: Hesap Olustur\n");
-            string girisYontemi = Console.ReadLine();
-            if(girisYontemi!="1" && girisYontemi!="2")
+            int girisYontemi = Convert.ToInt32(Console.ReadLine());
+            if(girisYontemi!=1 && girisYontemi!=2)
             {
                 Console.Write("HATA!: Hatali tuslama.\n");
                 return GirisEkrani();
             }
-            return girisYontemi;
-        }
-        internal static bool kullaniciAdiVar(string dosya,string kullaniciAdi)
-        {
-            string[] kullaniciDosya = File.ReadAllLines(dosya);
-            int kullaniciDosya_boyut = kullaniciDosya.Length;
-            for( int i=1 ; i<kullaniciDosya_boyut ; i+=6 )
-            {
-                if( kullaniciAdi == kullaniciDosya[i] )
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-        internal static string KullaniciAdiOlustur(string dosya)
-        {
-            string AlfabetikveNumerik = "[a-zA-Z0-9ığĞüÜşŞİöÖçÇ]";
-            string IlkKarakterHarf = "^[a-zA-Z]";
-            Regex AlfabetikveNumerik_RGX = new Regex(AlfabetikveNumerik);
-            Regex IlkKarakterHarf_RGX = new Regex(IlkKarakterHarf);
-
-            Console.Write("Kullanici adiniz:\n>");
-            string kullaniciAdi = Convert.ToString(Console.ReadLine());
-            if(kullaniciAdi.Length<5 || kullaniciAdi.Length>20)
-            {
-                Console.Write("HATA!: Hatalı karakter uzunlugu. Tekrar deneyin.\n");
-                return KullaniciAdiOlustur(dosya);
-            }
-            MatchCollection mc = AlfabetikveNumerik_RGX.Matches(kullaniciAdi);
-            if(mc.Count != kullaniciAdi.Length)
-            {
-                Console.Write("HATA!: Alfabetik veya numarik olamayan karakter kullandiniz. Tekrar deneyin.\n");
-                return KullaniciAdiOlustur(dosya);
-            }
-            mc = IlkKarakterHarf_RGX.Matches(kullaniciAdi);
-            if(mc.Count == 0)
-            {
-                Console.Write("HATA!: Ilk karakter harf degil. Tekrar deneyin.\n");
-                return KullaniciAdiOlustur(dosya);
-            }
-            if(kullaniciAdiVar(dosya,kullaniciAdi))
-            {
-                Console.Write("HATA!: Bu kullanici adi coktan alinmistir. Tekrar deneyin.\n");
-                return KullaniciAdiOlustur(dosya);
-            }
-            return kullaniciAdi;
-        }
-        internal static string KullaniciSifreOlustur()
-        {
-            string Numerik = "[0-9]";
-            string BuyukHarf = "[A-Z]";
-            string KucukHarf = "[a-z]";
-            string OzelKarakter = "[!@#$%&*-+]";
-            string BoslukKarakter = "\\s+"; 
-            Regex Numerik_RGX = new Regex(Numerik);
-            Regex BuyukHarf_RGX = new Regex(BuyukHarf);
-            Regex KucukHarf_RGX = new Regex(KucukHarf);
-            Regex OzelKarakter_RGX = new Regex(OzelKarakter);
-            Regex BoslukKarakter_RGX = new Regex(BoslukKarakter);
-
-            Console.Write("Sifreniz:\n>");
-            string sifre = Convert.ToString(Console.ReadLine());
-            if(sifre.Length<8 || sifre.Length>20)
-            {
-                Console.Write("HATA!: Hatalı karakter uzunlugu. Tekrar deneyin.\n");
-                return KullaniciSifreOlustur();
-            }
-            MatchCollection mc = Numerik_RGX.Matches(sifre);
-            if(mc.Count == 0)
-            {
-                Console.Write("HATA!: En az bir nümerik karakteriniz olmalı. Tekrar deneyin.\n");
-                return KullaniciSifreOlustur();
-            }
-            mc = BuyukHarf_RGX.Matches(sifre);
-            if(mc.Count == 0)
-            {
-                Console.Write("HATA!: En az bir buyuk harf karakteriniz olmalı. Tekrar deneyin.\n");
-                return KullaniciSifreOlustur();
-            }
-            mc = KucukHarf_RGX.Matches(sifre);
-            if(mc.Count == 0)
-            {
-                Console.Write("HATA!: En az bir kucuk harf karakteriniz olmalı. Tekrar deneyin.\n");
-                return KullaniciSifreOlustur();
-            }
-            mc = OzelKarakter_RGX.Matches(sifre);
-            if(mc.Count == 0)
-            {
-                Console.Write("HATA!: En az bir ozel karakteriniz olmalı. Tekrar deneyin.\n");
-                return KullaniciSifreOlustur();
-            }
-            mc = BoslukKarakter_RGX.Matches(sifre);
-            if(mc.Count != 0)
-            {
-                Console.Write("HATA!: Bosluk karakteriniz olmamalı. Tekrar deneyin.\n");
-                return KullaniciSifreOlustur();
-            }
-            return sifre;
-        }
-        internal static string KullaniciIsmiOlustur()
-        {
-            string IlkKarakterHarf = "^[a-zA-Z]";
-            string OzelKarakter = "[!@#$%&*-+]";
-            Regex IlkKarakterHarf_RGX = new Regex(IlkKarakterHarf);
-            Regex OzelKarakter_RGX = new Regex(OzelKarakter);
-            
-            Console.Write("Isminiz:\n>");
-            string isim = Convert.ToString(Console.ReadLine());
-
-            MatchCollection mc = IlkKarakterHarf_RGX.Matches(isim);
-            if(mc.Count == 0)
-            {
-                Console.Write("HATA!: Ilk karakter harf degil. Tekrar deneyin.\n");
-                return KullaniciIsmiOlustur();
-            }
-            mc = OzelKarakter_RGX.Matches(isim);
-            if(mc.Count != 0)
-            {
-                Console.Write("HATA!: Isminiz ozel karakter iceremez. Tekrar deneyin.\n");
-                return KullaniciIsmiOlustur();
-            }
-            return isim;
-        }
-        internal static string KullaniciEpostaOlustur()
-        {
-            string IlkOzelKarakter = "^[!@#$%&*-+]";
-            string karakterAT = "[@]";
-            Regex IlkOzelKarakter_RGX = new Regex(IlkOzelKarakter);
-            Regex karakterAT_RGX = new Regex(karakterAT);
-
-
-            Console.Write("E-Postaniz:\n>");
-            string eposta = Convert.ToString(Console.ReadLine());
-
-            MatchCollection mc = IlkOzelKarakter_RGX.Matches(eposta);
-            if(mc.Count != 0)
-            {
-                Console.Write("HATA!: Ilk karakter ozel karakter olamaz. Tekrar deneyin.\n");
-                return KullaniciEpostaOlustur();
-            }
-            mc = karakterAT_RGX.Matches(eposta);
-            if(mc.Count == 0)
-            {
-                Console.Write("HATA!: E-postaniz @ icermelidir. Tekrar deneyin.\n");
-                return KullaniciEpostaOlustur();
-            }
-            return eposta;
-        }
-        internal static string KullaniciTelefonOlustur()
-        {
-            string Alfabetik = "[a-zA-Z]";
-            string telefonFormat = ".{3,3}-.{3,3}-.{4,4}";
-            Regex Alfabetik_RGX = new Regex(Alfabetik);
-            Regex telefonFormat_RGX = new Regex(telefonFormat);
-
-            Console.Write("Telefon Numaraniz:\n>");
-            string telefon = Convert.ToString(Console.ReadLine());
-
-            MatchCollection mc = Alfabetik_RGX.Matches(telefon);
-            if(mc.Count != 0)
-            {
-                Console.Write("HATA!: Telefon numaraniz harf iceremez. Tekrar deneyin.\n");
-                return KullaniciTelefonOlustur();
-            }
-            mc = telefonFormat_RGX.Matches(telefon);
-            if(mc.Count == 0)
-            {
-                Console.Write("HATA!: Telefon numaraniz dogru formatta degildir. Tekrar deneyin.\n");
-                return KullaniciTelefonOlustur();
-            }
-            return telefon;
-        }
+            return (GirisYontemi)girisYontemi-1;
+        }  
         internal static void musteriOlustur(string dosya)
         { 
             Console.Write("\nIstenen bilgileri sirasiyla giriniz.\n");
-            string kullaniciAdi =  "\n" + Program.KullaniciAdiOlustur(dosya);
+            string kullaniciAdi = kayitKontrol.KullaniciAdiOlustur(dosya);
             Console.WriteLine("\nBasarili kullanici adi girisi.");
-            string sifre = "\n" + Program.KullaniciSifreOlustur() + "\n";
+            string sifre = kayitKontrol.KullaniciSifreOlustur();
             Console.WriteLine("\nBasarili sifre girisi.");
-            string isim = "\n" + Program.KullaniciIsmiOlustur() + "\n";
+            string isim = kayitKontrol.KullaniciIsmiOlustur();
             Console.WriteLine("\nBasarili isim girisi.");
-            string eposta = "\n" + Program.KullaniciEpostaOlustur() + "\n";
+            string eposta = kayitKontrol.KullaniciEpostaOlustur();
             Console.WriteLine("\nBasarili e-posta girisi.");
-            string telefon = "\n" + Program.KullaniciTelefonOlustur() + "\n";
+            string telefon = kayitKontrol.KullaniciTelefonOlustur();
             Console.WriteLine("\nBasarili telefon girisi.");
-            Musteri musteri = new Musteri(kullaniciAdi,sifre,isim,eposta,telefon);
-            File.AppendAllText(dosya, "\n"+musteri.statu);
-            File.AppendAllText(dosya, "\n"+musteri.kullaniciAdi);
-            File.AppendAllText(dosya, "\n"+musteri.sifre);
-            File.AppendAllText(dosya, "\n"+musteri.isim);
-            File.AppendAllText(dosya, "\n"+musteri.eposta);
-            File.AppendAllText(dosya, "\n"+musteri.telefon);
+            Musteri musteri = new Musteri(kullaniciAdi,sifre,isim,telefon,eposta);
+            File.AppendAllText(dosya,"\n");
+            musteri.KullaniciEkle(dosya);
             Console.WriteLine("\nKaydiniz basariyla tamamlanmistir.");
         } 
         internal static void defaultKullanicilariOlustur(string dosya)
@@ -322,20 +178,136 @@ namespace Proje
             Yonetici yonetici = new Yonetici("GunesBalci","Gunesbalc1*","Gunes Balci","511-111-2211","gunesbalci66@hotmail.com");
             Satici satici1 = new Satici("OsmanSu","Osmansu2001*","Osman Su","200-120-0120","osmn2001@gmail.com");
             Satici satici2 = new Satici("Birey","Bireyimsi1ey*","Birey Birey","200-120-0127","birey@gmail.com");
-            if(!kullaniciAdiVar(dosya,yonetici.kullaniciAdi))
+            Musteri musteri1 = new Musteri("DenizOzen","deniz2121*","Deniz Ozen","321-123-1242","denizozen@gmail.com");
+            Musteri musteri2 = new Musteri("FatmaBaygin","Fatmabygn12*","Fatma Baygin","653-234-1235","fatos12@hotmail.com");
+            if(!kayitKontrol.kullaniciAdiVar(dosya,yonetici.kullaniciAdi))
             {
-                yonetici.yoneticiEkle(dosya);
+                yonetici.KullaniciEkle(dosya);
             }
-            if(!kullaniciAdiVar(dosya,satici1.kullaniciAdi))
+            if(!kayitKontrol.kullaniciAdiVar(dosya,satici1.kullaniciAdi))
             {
-                satici1.saticiEkle(dosya);
+                File.AppendAllText(dosya,"\n");
+                satici1.KullaniciEkle(dosya);
             }
-            if(!kullaniciAdiVar(dosya,satici2.kullaniciAdi))
+            if(!kayitKontrol.kullaniciAdiVar(dosya,satici2.kullaniciAdi))
             {
-                satici2.saticiEkle(dosya);
+                File.AppendAllText(dosya,"\n");
+                satici2.KullaniciEkle(dosya);
+            }
+            if(!kayitKontrol.kullaniciAdiVar(dosya,musteri1.kullaniciAdi))
+            {
+                File.AppendAllText(dosya,"\n");
+                musteri1.KullaniciEkle(dosya);
+            }
+            if(!kayitKontrol.kullaniciAdiVar(dosya,musteri2.kullaniciAdi))
+            {
+                File.AppendAllText(dosya,"\n");
+                musteri2.KullaniciEkle(dosya);
             }
         }
-        internal static int kullaniciGiris(string dosya)
+        internal static void defaultArabaOlustur(string dosya)
+        {
+            YedekParca[] yedekParca = new YedekParca[5];
+            yedekParca[0] = new YedekParca("tekerlek",123);
+            yedekParca[1] = new YedekParca("yan_cam",13);
+            yedekParca[2] = new YedekParca("dikiz_aynasi",756);
+            yedekParca[3] = new YedekParca("motor",143);
+            yedekParca[4] = new YedekParca("direksiyon",90);
+
+            Donanim[] donanim1 = new Donanim[2];
+            donanim1[0] = new Donanim("Vision",yedekParca);
+            donanim1[1] = new Donanim("Dream",yedekParca);
+
+            Donanim[] donanim2 = new Donanim[2];
+            donanim2[0] = new Donanim("Easy",yedekParca);
+            donanim2[1] = new Donanim("Urban Plus",yedekParca);
+
+            Donanim[] donanim3 = new Donanim[2];
+            donanim3[0] = new Donanim("Dinamik",yedekParca);
+            donanim3[1] = new Donanim("Konfor",yedekParca);
+
+            Donanim[] donanim4 = new Donanim[2];
+            donanim4[0] = new Donanim("California",yedekParca);
+            donanim4[1] = new Donanim("Winter",yedekParca);
+
+            Donanim[] donanim5 = new Donanim[2];
+            donanim5[0] = new Donanim("EX",yedekParca);
+            donanim5[1] = new Donanim("LX",yedekParca);
+
+            Donanim[] donanim6 = new Donanim[2];
+            donanim6[0] = new Donanim("6",yedekParca);
+            donanim6[1] = new Donanim("6",yedekParca);
+
+            Donanim[] donanim7 = new Donanim[2];
+            donanim7[0] = new Donanim("7",yedekParca);
+            donanim7[1] = new Donanim("7",yedekParca);
+
+            Donanim[] donanim8 = new Donanim[2];
+            donanim8[0] = new Donanim("8",yedekParca);
+            donanim8[1] = new Donanim("8",yedekParca);
+
+            Donanim[] donanim9 = new Donanim[2];
+            donanim9[0] = new Donanim("9",yedekParca);
+            donanim9[1] = new Donanim("9",yedekParca);
+
+            Donanim[] donanim10 = new Donanim[2];
+            donanim10[0] = new Donanim("10",yedekParca);
+            donanim10[1] = new Donanim("10",yedekParca);
+            
+            Araba araba1 = new Araba("Toyota","Corolla",donanim1);
+            Araba araba2 = new Araba("Fiat","Egea",donanim2);
+            Araba araba3 = new Araba("Audi","A3",donanim3);
+            Araba araba4 = new Araba("BMW","E3",donanim4);
+            Araba araba5 = new Araba("Honda","Civic",donanim5);
+            Araba araba6 = new Araba("Hyundai","Staria",donanim6);
+            Araba araba7 = new Araba("Jeep","model",donanim7);
+            Araba araba8 = new Araba("Nissan","model",donanim8);
+            Araba araba9 = new Araba("Volkswagen","model",donanim9);
+            Araba araba10 = new Araba("Volva","model",donanim10);
+
+            araba1.arabaEkle(dosya);
+            araba2.arabaEkle(dosya);
+            araba3.arabaEkle(dosya);
+            araba4.arabaEkle(dosya);
+            araba5.arabaEkle(dosya);
+            araba6.arabaEkle(dosya);
+            araba7.arabaEkle(dosya);
+            araba8.arabaEkle(dosya);
+            araba9.arabaEkle(dosya);
+            araba10.arabaEkle(dosya);
+        }
+        internal static void ArabaOlustur(string dosya)
+        {
+            string cikis = "H";
+            Console.Write("\nArabanin:\nMarkasi:");
+            string marka = Convert.ToString(Console.ReadLine());
+            Console.Write("\nModeli:");
+            string model = Convert.ToString(Console.ReadLine());
+            Console.Write("\nİlk donanimi:");
+            string donanim1 = Convert.ToString(Console.ReadLine());
+            Console.Write("\nİkinci donanimi:");
+            string donanim2 = Convert.ToString(Console.ReadLine());
+            Console.Write("\nİlk donanimin yedek parcalarini ve ardindan stoklarini girin.");
+            string yedekparca;
+            int stok;
+            while(cikis=="H"||cikis=="h")
+            {
+                Console.Write("\nYedek parca:");
+                yedekparca = Convert.ToString(Console.ReadLine());
+                Console.Write("\nStok:");
+                stok = Convert.ToInt32(Console.ReadLine());
+                File.AppendAllText(dosya,yedekparca+" "+stok+"\n");
+                Console.Write("\nEklemeye devam etmek istiyor musunuz?(E/H)");
+                cikis = Convert.ToString(Console.ReadLine());
+                while(cikis!="h"||cikis!="H"||cikis!="E"||cikis!="e")
+                {
+                    Console.Write("\nHATA!: Gecersiz giris. Tekrar deneyin.");
+                    Console.Write("\nEklemeye devam etmek istiyor musunuz?(E/H)");
+                    cikis = Convert.ToString(Console.ReadLine());
+                }
+            }
+        }
+        internal static Kullanici kullaniciGiris(string dosya)
         {
             string[] kullaniciDosya = File.ReadAllLines(dosya);
             int kullaniciDosya_boyut = kullaniciDosya.Length;
@@ -356,16 +328,10 @@ namespace Proje
                     if( sifre == kullaniciDosya[i+1] )
                     {
                         Console.Write("\nGiris Basarili");
-                        string statu = kullaniciDosya[i-1];
-                        switch(statu)
-                        {
-                            case "yonetici":
-                            return 1;
-                            case "satici":
-                            return 2;
-                            case "musteri":
-                            return 3;
-                        }
+                        Kullanici kullanici = 
+                        new Kullanici(kullaniciAdi,sifre,kullaniciDosya[i+2],kullaniciDosya[i+4],kullaniciDosya[i+3]);
+                        kullanici.statu = kullaniciDosya[i-1];
+                        return kullanici;
                     }
                     else
                     {
@@ -379,27 +345,35 @@ namespace Proje
                 Console.Write("\nHATA!: Hatali kullanici adi. Tekrar Deneyiniz.");
                 return kullaniciGiris(dosya);
             }
-            return 0;
+            return kullaniciGiris(dosya);
         }
         public static void Main()
         {
             string kullaniciDosya = "kullanicilar.txt";
-            File.AppendAllText(kullaniciDosya,"");
-            /*
-            string dosya = "carList.txt";
-            Araba araba = new Araba();
-            araba.arabaBilgi(dosya);
-            */
-            defaultKullanicilariOlustur(kullaniciDosya);
+            string arabaDosya = "arabalar.txt";
+            if(!File.Exists(kullaniciDosya))
+            {
+                File.AppendAllText(kullaniciDosya,"");
+                defaultKullanicilariOlustur(kullaniciDosya);
+            }
+            if(!File.Exists(arabaDosya))
+            {
+                File.AppendAllText(arabaDosya,"");
+                defaultArabaOlustur(arabaDosya);
+            }
             
-            string girisYontemi = GirisEkrani();
+            GirisYontemi girisYontemi = GirisEkrani();
 
-            if(girisYontemi=="1")
+            if(girisYontemi==GirisYontemi.giris)
             {
                 Console.Clear();
-                kullaniciGiris(kullaniciDosya);
+                if( kullaniciGiris(kullaniciDosya).statu == "musteri")
+                {
+                    
+                }
+                
             }
-            if(girisYontemi=="2")
+            if(girisYontemi==GirisYontemi.kayıt)
             {
                 Console.Clear();
                 musteriOlustur(kullaniciDosya);
